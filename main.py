@@ -9,13 +9,14 @@ import matplotlib.pyplot as plt
 
 # PARAMETERS
 NUM_BEDS = 10
-SIM_TIME = 1000         # total simulation time
+SIM_TIME = 500         # total simulation time
 ARRIVAL_RATE = 5        # avg time btw patient arrivals
 TREATMENT_TIME = (10,30)     # treatment duration range (min, max)
-SEVERITY_LEVELS = [1, 2, 3]   # 1 = critical, 3 = mild
+SEVERITY_LEVELS = [0, 1, 2]   # 0 = critical, 2 = mild
+SEVERITY_NAMES = {0: "Critical", 1: "Serious", 2: "Mild"}
 
 # DATA COLLECTION
-wait_times = {1: [], 2: [], 3: []}
+wait_times = {0: [], 1: [], 2: []}
 queue_lengths = []
 utilization = []
 time_points = []
@@ -24,20 +25,28 @@ time_points = []
 def patient(env, name, hospital, severity):
     arrival_time = env.now
 
+    # print(f"{name} with severity {severity} arrives at {arrival_time:.2f}")
+
     # Request bed with priority
     with hospital.request(priority=severity) as req:
         yield req
         wait_time = env.now - arrival_time
         wait_times[severity].append(wait_time)
 
+        # print(f"{name} admitted at {env.now:.2f} after waiting {wait_time:.2f}")
+
+        # treatment time
         treatment_duration = random.uniform(*TREATMENT_TIME)
         yield env.timeout(treatment_duration)
+
+        # print(f"{name} discharged at {env.now:.2f} (treatment {treatment_duration:.2f})")
 
 # ARRIVAL PROCESS
 def arrival_process(env, hospital):
     i = 0
     while True:
-        yield env.timeout(random.expovariate(1.0 / ARRIVAL_RATE))
+        # exponential interarrival time
+        yield env.timeout(random.expovariate(1 / ARRIVAL_RATE))
         i += 1
         severity = random.choices(SEVERITY_LEVELS, weights=[0.2, 0.3, 0.5])[0]
         env.process(patient(env, f"Patient {i}", hospital, severity))
@@ -67,21 +76,49 @@ for s in SEVERITY_LEVELS:
 print("Total patients served:", sum(len(w) for w in wait_times.values()))
 
 # PLOTS
-plt.figure()
-plt.plot(time_points, queue_lengths)
+# 1. Average Wait Time per Severity
+avg_waits = [
+    sum(wait_times[s]) / len(wait_times[s]) if wait_times[s] else 0
+    for s in SEVERITY_LEVELS
+]
+plt.figure(figsize=(8, 5))
+plt.bar(SEVERITY_NAMES.values(), avg_waits, color=['red', 'orange', 'green'])
+plt.title("Average Wait Time per Severity Level")
+plt.ylabel("Average Wait Time")
+plt.show()
+
+# 2. Hospital Utilization Over Time
+plt.figure(figsize=(8, 5))
+plt.plot(time_points, utilization, label="Utilization")
+plt.title("Hospital Bed Utilization Over Time")
 plt.xlabel("Time")
-plt.ylabel("Queue Length")
+plt.ylabel("Utilization (fraction)")
+plt.ylim(0, 1.1)
+plt.legend()
+plt.show()
+
+# 3. Queue Length Over Time
+plt.figure(figsize=(8, 5))
+plt.plot(time_points, queue_lengths, label="Queue Length", color='purple')
 plt.title("Queue Length Over Time")
-plt.show()
-
-plt.figure()
-plt.plot(time_points, utilization)
 plt.xlabel("Time")
-plt.ylabel("Bed Utilization (fraction)")
-plt.title("Bed Utilization Over Time")
+plt.ylabel("Number of Patients Waiting")
+plt.legend()
 plt.show()
 
+# 4. Histogram of Wait Times per Severity
+plt.figure(figsize=(10, 6))
+colors = {0: "red", 1: "orange", 2: "green"}
 
+for s in SEVERITY_LEVELS:
+    if wait_times[s]:  # only plot if we had patients of that severity
+        plt.hist(wait_times[s], bins=20, alpha=0.6, label=SEVERITY_NAMES[s], color=colors[s])
+
+plt.title("Wait Time Distribution by Severity")
+plt.xlabel("Wait Time")
+plt.ylabel("Number of Patients")
+plt.legend()
+plt.show()
 
 
 
