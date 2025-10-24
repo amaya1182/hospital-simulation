@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 # PARAMETERS
 NUM_BEDS = 10
 SIM_TIME = 500         # total simulation time
-ARRIVAL_RATE = 5        # avg time btw patient arrivals
+ARRIVAL_RATE = 4        # 4 patients per hour
 TREATMENT_TIME = (10,30)     # treatment duration range (min, max)
 SEVERITY_LEVELS = [0, 1, 2]   # 0 = critical, 2 = mild
 SEVERITY_NAMES = {0: "Critical", 1: "Serious", 2: "Mild"}
