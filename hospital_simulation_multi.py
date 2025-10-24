@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 # -------------------------------
 # Core Simulation Function
 # -------------------------------
-def run_simulation(run_id, num_doctors, arrival_rate, service_rate, sim_time=3600):
+def run_simulation(run_id, num_doctors, arrival_rate, service_rate, sim_time=28800):
     results = []
     queue_snapshots = []
 
